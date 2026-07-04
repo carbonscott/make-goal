@@ -10,7 +10,7 @@ From a rough goal, the skill writes two files into `.goal/` in your working dire
 
 - **`.goal/<slug>.json`** — the contract. Describes *what ends the loop*, never a task list. Key parts:
   - `done_when` — checkable end states, each carrying its own proof phrase (e.g. *"proven by printing the final line of `npm test` showing exit 0"*).
-  - `operating_mode` — the running agent acts as an orchestrator, delegating each iteration to 2–5 subagents and maintaining an iteration ledger.
+  - `operating_mode` — the running agent acts as an orchestrator, delegating each iteration to 2–5 subagents and maintaining an iteration ledger on disk. Each turn it prints a compact **digest** of that ledger — not the whole file — since the evaluator reads only conversation text.
   - `bound` — an OR-termination clause so the loop is guaranteed to stop.
 - **`.goal/<slug>.ledger.json`** — a bootstrapped ledger the running agent appends to, one entry per iteration.
 
@@ -50,10 +50,10 @@ You can also hand it a fully pre-written condition — it still wraps it in the 
   "done_when": [
     "Every file in src/auth is under 200 lines, proven by printing the output of `wc -l src/auth/*`.",
     "The test suite passes, proven by printing the final line of `npm test` showing exit 0.",
-    "The full ledger JSON is printed in this turn's output and shows at least 3 completed iterations, each with a non-empty 'new' field."
+    "The LEDGER DIGEST is printed this turn and its header shows at least 3 completed iterations, with a non-empty 'new' summary on every iteration row, proven by printing the digest."
   ],
   "guardrails": ["Do not modify any file outside src/auth/."],
-  "bound": "OR: the printed ledger shows 9 completed iterations. In that case print the ledger plus a gap report listing every unmet done_when item, and stop."
+  "bound": "OR: the printed LEDGER DIGEST header shows 9 completed iterations. In that case print the digest plus a gap report listing every unmet done_when item, and stop."
 }
 ```
 

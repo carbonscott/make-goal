@@ -61,15 +61,15 @@ JSON container, prose values. Key order is deliberate: `/goal @file` inlines the
     "role": "You are an orchestrator. Each iteration (= one turn): think about the next slice of work, decompose it, delegate to subagents via the Agent tool, then integrate. Doing small steps yourself is allowed; delegating is preferred. The decomposition is part of the deliverable.",
     "budget": "Delegate to at least 2 and at most 5 subagents per iteration.",
     "iterations": "Complete at least 3 iterations before done_when may be considered met, even if it appears satisfied earlier — use surplus iterations to verify and harden.",
-    "ledger": "Maintain .goal/auth-refactor.ledger.json on disk, appending one entry per iteration: {n, thought, delegated: [{agent, task, model}], integrated, new, remaining}. 'new' must name a decision or artifact that did not exist before this iteration. At the end of EVERY turn, print the complete current ledger JSON verbatim in a fenced code block headed LEDGER. The goal evaluator reads conversation text only: a ledger that is not printed this turn does not exist, even if the file does."
+    "ledger": "Maintain .goal/auth-refactor.ledger.json on disk, appending one full entry per iteration: {n, thought, delegated: [{agent, task, model}], integrated, new, remaining}. 'new' must name a decision or artifact that did not exist before this iteration. At the end of EVERY turn print a LEDGER DIGEST projected from that file (fenced): a header 'LEDGER DIGEST — X/3 iterations complete (ceiling 9)' then one line per iteration 'n | agents=<count> | new: <one-line summary>'. Print it cumulatively every turn; keep thought/integrated/remaining on disk only. The digest is a view of the file (X = its entry count), never authored independently. The evaluator reads conversation text only: a digest not printed this turn does not exist, even if the file does."
   },
   "done_when": [
     "Every file in src/auth is under 200 lines, proven by printing the output of `wc -l src/auth/*`.",
     "The test suite passes, proven by printing the final line of `npm test` showing exit 0.",
-    "The full ledger JSON is printed in this turn's output and shows at least 3 completed iterations, each with a non-empty 'new' field."
+    "The LEDGER DIGEST is printed this turn and its header shows at least 3 completed iterations, with a non-empty 'new' summary on every iteration row, proven by printing the digest."
   ],
   "guardrails": ["Do not modify any file outside src/auth/."],
-  "bound": "OR: the printed ledger shows 9 completed iterations. In that case print the ledger plus a gap report listing every unmet done_when item, and stop — this counts as bounded termination."
+  "bound": "OR: the printed LEDGER DIGEST header shows 9 completed iterations. In that case print the digest plus a gap report listing every unmet done_when item, and stop — this counts as bounded termination."
 }
 ```
 
@@ -77,10 +77,10 @@ Field notes — substitute the user's real slug and numbers everywhere:
 - `type` — the only enum: `deterministic` | `exploratory`. Drives interview branching; harmless to the evaluator.
 - `run` — the portable preamble, verbatim from the example. It makes the file self-contained in harnesses without `/goal`.
 - `operating_mode` — four prose strings: role, budget, iterations, ledger. Numbers appear here as prose only; their machine-readable copy lives in the ledger's `limits`, and both are written from the same slot values in the same Output step so they never drift.
-- `done_when` — checkable end states only, each carrying its own proof phrase ("proven by printing …"). The LAST item is always the ledger-print item — it is how the floor and budget become evaluator-enforceable.
-- `bound` — an OR-termination clause tied to the printed ledger's iteration count (the ceiling), so termination is also judgeable from text.
+- `done_when` — checkable end states only, each carrying its own proof phrase ("proven by printing …"). The LAST item is always the ledger-digest item — it is how the floor and budget become evaluator-enforceable.
+- `bound` — an OR-termination clause tied to the printed digest's iteration count (the ceiling), so termination is also judgeable from text.
 
-If the drafted contract is ≥ 4,000 characters, trim in this order: (1) guardrail prose, (2) shorten `run` to its minimal three sentences, (3) compress `role`, (4) tighten done_when wording. Never delete a checkable state, the ledger clause, or the ledger-print item. Still over → ask the user which done_when items to merge.
+If the drafted contract is ≥ 4,000 characters, trim in this order: (1) guardrail prose, (2) shorten `run` to its minimal three sentences, (3) compress `role`, (4) tighten done_when wording. Never delete a checkable state, the ledger clause, or the ledger-digest item. Still over → ask the user which done_when items to merge.
 
 ## Ledger schema — `.goal/<slug>.ledger.json`
 
@@ -110,10 +110,25 @@ Entries the running agent appends per iteration (the shape lives in the contract
 }
 ```
 
+The full entry above stays **on disk only** — it is the source of truth and the running agent's working memory. The evaluator cannot read it, so each turn the agent prints a *projection*, the **LEDGER DIGEST**, carrying only the fields that gate termination:
+
+```
+LEDGER DIGEST — 4/3 iterations complete (ceiling 9)
+1 | agents=3 | new: mapped src/auth module boundaries
+2 | agents=2 | new: extracted token.py (142 lines)
+3 | agents=4 | new: extracted session.py (188 lines) + unit tests pass
+4 | agents=2 | new: verified every src/auth file <200 via wc -l
+```
+
+- The header `X/<floor> … (ceiling <ceiling>)` is the entire floor-and-bound check on one line — the evaluator (a small, fast model) reads a number instead of counting rows.
+- Each row's `new` must be non-empty and name the concrete artifact/decision; this is the anti-spinning gate and lets the evaluator cross-check it against the substantive done_when proofs printed elsewhere.
+- `agents=<count>` keeps the 2–5 budget auditable without re-printing the delegation list.
+- Print it cumulatively (all rows, every turn) — roughly one short line per iteration instead of a full JSON object, so the two largest fields (`thought`, `integrated`) never enter the transcript. The on-disk JSON is untouched; only what gets reported shrinks.
+
 ## Evaluator dry-run
 
 After the user approves the draft, before writing files:
-1. Compose two short hypothetical end-of-turn outputs (invented, a few lines each, no tools run): **MET** — the proof text for every done_when item plus a printed ledger with ≥ floor iterations, each with non-empty `new`; **UNMET near-miss** — e.g. proofs present but the ledger shows one iteration too few, or one proof missing.
+1. Compose two short hypothetical end-of-turn outputs (invented, a few lines each, no tools run): **MET** — the proof text for every done_when item plus a printed digest whose header shows ≥ floor iterations, each row's `new` non-empty; **UNMET near-miss** — e.g. proofs present but the digest header shows one iteration too few, or one proof missing.
 2. Role-play the /goal evaluator: judge each hypothetical using only its text against the drafted condition. Output met/not-met plus a one-line reason each.
 3. Pass = MET judged met AND UNMET judged not met, with reasons citing the intended items.
 4. Fail → name the ambiguous done_when item, revise its wording (typical fixes: add "proven by printing …", quantify a vague term), re-run. After two failed revisions, tell the user plainly that this proof is not judgeable from conversation text and needs a different observable.
@@ -125,8 +140,8 @@ Run silently before showing the final draft; fix what you can, surface unresolve
 - done_when contains only checkable end states — no process verbs, no task steps.
 - Every done_when item names a proof that is printable conversation text.
 - Guardrails were considered: present, or the user explicitly said none.
-- `bound` is present and tied to the printed ledger's iteration count.
-- The ledger clause is in operating_mode AND mirrored as the last done_when item.
+- `bound` is present and tied to the printed digest's iteration count.
+- The ledger clause (defining the digest) is in operating_mode AND mirrored as the last done_when item.
 - The ledger `limits` numbers equal the prose numbers in the contract.
 - Contract file < 4,000 characters — check mechanically with `wc -c` (a hard /goal limit; do not estimate).
 
