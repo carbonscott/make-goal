@@ -133,11 +133,11 @@ Worked example to calibrate the two hypotheticals (auth-refactor, floor 3) — b
 ```
 LEDGER auth-refactor — iterations 3/3, full at .goal/auth-refactor.ledger.json
 1 · delegated:2 · new: split login/session/token helpers out of auth.py
-2 · delegated:1 · new: extracted password hashing into auth/hashing.py
+2 · delegated:2 · new: extracted password hashing into auth/hashing.py
 3 · delegated:2 · new: moved middleware into auth/guards.py; every file now <200 lines
 ```
 ```json
-{ "n": 3, "thought": "carve out the final module and re-verify", "delegated": [ { "agent": "general-purpose", "task": "move middleware+decorators, run wc/npm test", "model": "sonnet" } ], "integrated": "all src/auth files <200 lines; npm test exit 0", "new": "moved middleware into auth/guards.py; every file now <200 lines", "remaining": "none" }
+{ "n": 3, "thought": "carve out the final module and re-verify", "delegated": [ { "agent": "general-purpose", "task": "move middleware + decorators into auth/guards.py", "model": "sonnet" }, { "agent": "general-purpose", "task": "re-run wc -l and npm test to confirm", "model": "sonnet" } ], "integrated": "all src/auth files <200 lines; npm test exit 0", "new": "moved middleware into auth/guards.py; every file now <200 lines", "remaining": "none" }
 ```
 `wc -l src/auth/*` → every file <200; `npm test` → exit 0. Verdict: **MET** — floor 3/3, each roster `new` non-empty, both proofs present.
 
@@ -145,7 +145,7 @@ LEDGER auth-refactor — iterations 3/3, full at .goal/auth-refactor.ledger.json
 ```
 LEDGER auth-refactor — iterations 3/3, full at .goal/auth-refactor.ledger.json
 1 · delegated:2 · new: split login/session/token helpers out of auth.py
-2 · delegated:1 · new: extracted password hashing into auth/hashing.py
+2 · delegated:2 · new: extracted password hashing into auth/hashing.py
 3 · delegated:0 · new:
 ```
 Verdict: **not met** — header reads 3/3 but iteration 3 names no `new`; the per-iteration non-empty-`new` rule fails even though both proofs pass. (A header of 2/3 would fail the floor the same way.)
