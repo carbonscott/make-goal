@@ -88,7 +88,7 @@ Field notes — substitute the user's real slug and numbers everywhere:
 - `done_when` — checkable end states only, each carrying its own proof phrase ("proven by printing …"). The LAST item is always the ledger-digest item — it is how the floor and budget become evaluator-enforceable.
 - `bound` — an OR-termination clause tied to the printed digest's header iteration count (the ceiling), so termination is also judgeable from text.
 
-If the drafted contract is ≥ 4,000 characters, trim in this order: (1) guardrail prose, (2) shorten `run` to its minimal three sentences, (3) compress `role`, (4) tighten done_when wording. Never delete a checkable state, the ledger clause, or the ledger-digest item. Still over → ask the user which done_when items to merge.
+If the drafted contract is ≥ 4,000 characters, do not trim automatically — ask the user whether they want it trimmed under 4,000. The `/goal @file` form inlines the file and isn't hard-capped, so staying under 4,000 is a conciseness choice, not a requirement; if the user declines, keep the contract as drafted. If they agree, trim in this order: (1) guardrail prose, (2) shorten `run` to its minimal three sentences, (3) compress `role`, (4) tighten done_when wording. Never delete a checkable state, the ledger clause, or the ledger-digest item. Still over after trimming → ask which done_when items to merge.
 
 ## Ledger schema — `.goal/<slug>.ledger.json`
 
@@ -160,16 +160,16 @@ Run silently before showing the final draft; fix what you can, surface unresolve
 - `bound` is present and tied to the printed digest's header iteration count.
 - The ledger clause is in operating_mode AND mirrored as the last done_when item.
 - The ledger `limits` numbers equal the prose numbers in the contract.
-- Contract file < 4,000 characters — check mechanically with `wc -c` (a hard /goal limit; do not estimate).
+- Contract size checked mechanically with `wc -c` (do not estimate) — if ≥ 4,000 characters, the user is asked whether to trim (not a hard limit; `/goal @file` isn't capped).
 
-Edge cases: no git repo is fine — `mkdir -p .goal` in the cwd, no repo check at all; a full pre-written condition in args still gets wrapped, the veto line, validation, and the dry-run; over 4,000 chars → trim priority above.
+Edge cases: no git repo is fine — `mkdir -p .goal` in the cwd, no repo check at all; a full pre-written condition in args still gets wrapped, the veto line, validation, and the dry-run; over 4,000 chars → ask the user whether to trim (never auto-trim).
 
 ## Output
 
 1. Show the drafted contract, the bootstrapped ledger, and the dry-run verdicts in the conversation, then **STOP and wait for the user's explicit approval** before writing anything. Explicit means a clear go-ahead ("yes", "go", "write it"); a question, silence, a partial reaction, or "looks good but…" is not approval — refine and ask again. Do not run `mkdir` or write either file until you have it.
 2. **Only after that explicit approval:** `mkdir -p .goal`. If `.goal/<slug>.json` OR `.goal/<slug>.ledger.json` already exists, never overwrite silently (an existing ledger may hold a run in progress) — ask: *"`.goal/<slug>.json` already exists — overwrite it, or write `<slug>-2` alongside?"* Version with the first free numeric suffix; contract and ledger always share the suffix.
 3. Write both files from the same slot values in one step.
-4. `wc -c` the contract; if ≥ 4,000, trim per the priority above and rewrite.
+4. `wc -c` the contract; if ≥ 4,000, tell the user the count and ask whether they want it trimmed under 4,000 — optional, since `/goal @file` isn't hard-capped. Only if they agree, trim per the priority above and rewrite; otherwise leave it as written.
 5. Finish by printing the exact command for the user to run — you cannot set the goal yourself:
    `/goal @.goal/<slug>.json`
 
