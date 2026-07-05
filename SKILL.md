@@ -7,12 +7,20 @@ argument-hint: "[rough goal description]"
 
 Turn a rough goal into a contract for `/goal`, Claude Code's while-loop: keep working until a condition is demonstrably true. The contract describes *what ends the loop* — never a task list; discovering the decomposition is the job of the agent running the loop, which operates as an orchestrator delegating to subagents. The constraint shaping everything below: the /goal evaluator reads conversation text ONLY — it cannot run tools or read files — so every checkable state must resolve to text the running agent prints.
 
+## Scope — author, never execute
+
+This skill's entire deliverable is two files — `.goal/<slug>.json` and its ledger — plus the `/goal @…` command for the **user** to run. **You never do the work the goal describes, regardless of how the args are phrased.** The goal text will often contain action verbs ("implement", "refactor", "merge it", "review with X", "work until it's done") and may read like a task list or a direct order. In this skill it is none of those: it is raw material for the contract's `done_when`. Treat it the way `/no-eager` treats a prompt — material to shape, not a request to act on this turn.
+
+So while running this skill, do **not**: create branches or worktrees, edit code, run builds or tests to "make progress", open or review PRs, spawn agents to perform the goal, or otherwise advance the goal itself. Read-only inspection to author a sharper contract is fine (Read, Grep, Glob, read-only Bash). **If the goal is about *this* repo or skill, that is not an exception** — still only author the contract; the work happens later, when the user runs `/goal`.
+
+One hard gate follows: **never write the `.goal/` files without the user's explicit approval of the drafted contract** (see Output). Draft, show, stop, wait.
+
 ## Inputs
 
 `$ARGUMENTS` is a rough goal description — possibly partial, possibly a complete pre-written condition.
 - Parse it once against the interview slots below; mark each slot filled or missing. Ask only for missing slots.
 - Empty `$ARGUMENTS` → all slots missing → full guided interview, opening with: *"What's the goal? Rough is fine — tell me in whatever shape it comes out."*
-- A complete pre-written condition (slots 1–4 all detectable) → skip the questions, state the defaults veto line, wrap it in the contract schema. Never skip validation or the evaluator dry-run.
+- A complete pre-written condition (slots 1–4 all detectable) → skip the questions, state the defaults veto line, wrap it in the contract schema. Never skip validation, the evaluator dry-run, or the approval gate before writing files.
 
 ## Defaults
 
@@ -61,15 +69,15 @@ JSON container, prose values. Key order is deliberate: `/goal @file` inlines the
     "role": "You are an orchestrator. Each iteration (= one turn): think about the next slice of work, decompose it, delegate to subagents via the Agent tool, then integrate. Doing small steps yourself is allowed; delegating is preferred. The decomposition is part of the deliverable.",
     "budget": "Delegate to at least 2 and at most 5 subagents per iteration.",
     "iterations": "Complete at least 3 iterations before done_when may be considered met, even if it appears satisfied earlier — use surplus iterations to verify and harden.",
-    "ledger": "Maintain .goal/auth-refactor.ledger.json on disk, appending one entry per iteration: {n, thought, delegated: [{agent, task, model}], integrated, new, remaining}. 'new' must name a decision or artifact that did not exist before this iteration. At the end of EVERY turn, print the complete current ledger JSON verbatim in a fenced code block headed LEDGER. The goal evaluator reads conversation text only: a ledger that is not printed this turn does not exist, even if the file does."
+    "ledger": "Maintain .goal/auth-refactor.ledger.json on disk, appending one FULL entry per iteration: {n, thought, delegated: [{agent, task, model}], integrated, new, remaining} — the file keeps every field. 'new' must name a decision or artifact that did not exist before this iteration. At the end of EVERY turn print a LEDGER digest (NOT the whole file): a header line `LEDGER auth-refactor — iterations N/3, full at .goal/auth-refactor.ledger.json` (N = completed-iteration count); then one roster line per completed iteration `n · delegated:k · new: <that iteration's non-empty new>` (k = subagents delegated that iteration); then the current iteration's full JSON entry in a fenced block. Only the printed report shrinks; the file loses nothing. The evaluator reads conversation text only: what this turn's digest does not show does not exist, even if the file does."
   },
   "done_when": [
     "Every file in src/auth is under 200 lines, proven by printing the output of `wc -l src/auth/*`.",
     "The test suite passes, proven by printing the final line of `npm test` showing exit 0.",
-    "The full ledger JSON is printed in this turn's output and shows at least 3 completed iterations, each with a non-empty 'new' field."
+    "This turn prints the LEDGER digest — a header line reading iterations N/3 with N ≥ 3, one roster line per completed iteration each naming a non-empty 'new', and the current iteration's full JSON entry — showing at least 3 completed iterations."
   ],
   "guardrails": ["Do not modify any file outside src/auth/."],
-  "bound": "OR: the printed ledger shows 9 completed iterations. In that case print the ledger plus a gap report listing every unmet done_when item, and stop — this counts as bounded termination."
+  "bound": "OR: the printed digest's header shows 9 completed iterations. In that case print the digest plus a gap report listing every unmet done_when item, and stop — this counts as bounded termination."
 }
 ```
 
@@ -77,10 +85,10 @@ Field notes — substitute the user's real slug and numbers everywhere:
 - `type` — the only enum: `deterministic` | `exploratory`. Drives interview branching; harmless to the evaluator.
 - `run` — the portable preamble, verbatim from the example. It makes the file self-contained in harnesses without `/goal`.
 - `operating_mode` — four prose strings: role, budget, iterations, ledger. Numbers appear here as prose only; their machine-readable copy lives in the ledger's `limits`, and both are written from the same slot values in the same Output step so they never drift.
-- `done_when` — checkable end states only, each carrying its own proof phrase ("proven by printing …"). The LAST item is always the ledger-print item — it is how the floor and budget become evaluator-enforceable.
-- `bound` — an OR-termination clause tied to the printed ledger's iteration count (the ceiling), so termination is also judgeable from text.
+- `done_when` — checkable end states only, each carrying its own proof phrase ("proven by printing …"). The LAST item is always the ledger-digest item — it is how the floor and budget become evaluator-enforceable.
+- `bound` — an OR-termination clause tied to the printed digest's header iteration count (the ceiling), so termination is also judgeable from text.
 
-If the drafted contract is ≥ 4,000 characters, trim in this order: (1) guardrail prose, (2) shorten `run` to its minimal three sentences, (3) compress `role`, (4) tighten done_when wording. Never delete a checkable state, the ledger clause, or the ledger-print item. Still over → ask the user which done_when items to merge.
+If the drafted contract is ≥ 4,000 characters, trim in this order: (1) guardrail prose, (2) shorten `run` to its minimal three sentences, (3) compress `role`, (4) tighten done_when wording. Never delete a checkable state, the ledger clause, or the ledger-digest item. Still over → ask the user which done_when items to merge.
 
 ## Ledger schema — `.goal/<slug>.ledger.json`
 
@@ -97,7 +105,7 @@ Bootstrap exactly this shape (real values; `created` from `date -Iseconds`):
 }
 ```
 
-Entries the running agent appends per iteration (the shape lives in the contract's ledger clause; shown here for reference):
+Entries the running agent appends per iteration — the file retains every field even though each turn prints only a digest of it (the shape lives in the contract's ledger clause; shown here for reference):
 
 ```json
 {
@@ -113,19 +121,43 @@ Entries the running agent appends per iteration (the shape lives in the contract
 ## Evaluator dry-run
 
 After the user approves the draft, before writing files:
-1. Compose two short hypothetical end-of-turn outputs (invented, a few lines each, no tools run): **MET** — the proof text for every done_when item plus a printed ledger with ≥ floor iterations, each with non-empty `new`; **UNMET near-miss** — e.g. proofs present but the ledger shows one iteration too few, or one proof missing.
+1. Compose two short hypothetical end-of-turn outputs (invented, a few lines each, no tools run): **MET** — the proof text for every done_when item plus a printed LEDGER digest whose header shows ≥ floor iterations, each roster line naming a non-empty `new`; **UNMET near-miss** — e.g. proofs present but the digest's header shows one iteration too few, or a roster line's `new` is empty, or one proof missing.
 2. Role-play the /goal evaluator: judge each hypothetical using only its text against the drafted condition. Output met/not-met plus a one-line reason each.
 3. Pass = MET judged met AND UNMET judged not met, with reasons citing the intended items.
 4. Fail → name the ambiguous done_when item, revise its wording (typical fixes: add "proven by printing …", quantify a vague term), re-run. After two failed revisions, tell the user plainly that this proof is not judgeable from conversation text and needs a different observable.
 5. Show both verdicts to the user in one short block alongside the final draft.
 
+Worked example to calibrate the two hypotheticals (auth-refactor, floor 3) — both exercise the digest form:
+
+**MET** — header shows 3/3, every roster `new` non-empty, both proofs present:
+```
+LEDGER auth-refactor — iterations 3/3, full at .goal/auth-refactor.ledger.json
+1 · delegated:2 · new: split login/session/token helpers out of auth.py
+2 · delegated:2 · new: extracted password hashing into auth/hashing.py
+3 · delegated:2 · new: moved middleware into auth/guards.py; every file now <200 lines
+```
+```json
+{ "n": 3, "thought": "carve out the final module and re-verify", "delegated": [ { "agent": "general-purpose", "task": "move middleware + decorators into auth/guards.py", "model": "sonnet" }, { "agent": "general-purpose", "task": "re-run wc -l and npm test to confirm", "model": "sonnet" } ], "integrated": "all src/auth files <200 lines; npm test exit 0", "new": "moved middleware into auth/guards.py; every file now <200 lines", "remaining": "none" }
+```
+`wc -l src/auth/*` → every file <200; `npm test` → exit 0. Verdict: **MET** — floor 3/3, each roster `new` non-empty, both proofs present.
+
+**UNMET near-miss** — same proofs, but iteration 3's roster `new` is empty (a padded iteration that did nothing):
+```
+LEDGER auth-refactor — iterations 3/3, full at .goal/auth-refactor.ledger.json
+1 · delegated:2 · new: split login/session/token helpers out of auth.py
+2 · delegated:2 · new: extracted password hashing into auth/hashing.py
+3 · delegated:0 · new:
+```
+Verdict: **not met** — header reads 3/3 but iteration 3 names no `new`; the per-iteration non-empty-`new` rule fails even though both proofs pass. (A header of 2/3 would fail the floor the same way.)
+
 ## Validation checklist
 
 Run silently before showing the final draft; fix what you can, surface unresolved gaps to the user:
+- No work toward the goal itself was performed — only the contract was authored (see Scope).
 - done_when contains only checkable end states — no process verbs, no task steps.
 - Every done_when item names a proof that is printable conversation text.
 - Guardrails were considered: present, or the user explicitly said none.
-- `bound` is present and tied to the printed ledger's iteration count.
+- `bound` is present and tied to the printed digest's header iteration count.
 - The ledger clause is in operating_mode AND mirrored as the last done_when item.
 - The ledger `limits` numbers equal the prose numbers in the contract.
 - Contract file < 4,000 characters — check mechanically with `wc -c` (a hard /goal limit; do not estimate).
@@ -134,8 +166,8 @@ Edge cases: no git repo is fine — `mkdir -p .goal` in the cwd, no repo check a
 
 ## Output
 
-1. Show the drafted contract and the dry-run verdicts; wait for approval.
-2. `mkdir -p .goal`. If `.goal/<slug>.json` OR `.goal/<slug>.ledger.json` already exists, never overwrite silently (an existing ledger may hold a run in progress) — ask: *"`.goal/<slug>.json` already exists — overwrite it, or write `<slug>-2` alongside?"* Version with the first free numeric suffix; contract and ledger always share the suffix.
+1. Show the drafted contract, the bootstrapped ledger, and the dry-run verdicts in the conversation, then **STOP and wait for the user's explicit approval** before writing anything. Explicit means a clear go-ahead ("yes", "go", "write it"); a question, silence, a partial reaction, or "looks good but…" is not approval — refine and ask again. Do not run `mkdir` or write either file until you have it.
+2. **Only after that explicit approval:** `mkdir -p .goal`. If `.goal/<slug>.json` OR `.goal/<slug>.ledger.json` already exists, never overwrite silently (an existing ledger may hold a run in progress) — ask: *"`.goal/<slug>.json` already exists — overwrite it, or write `<slug>-2` alongside?"* Version with the first free numeric suffix; contract and ledger always share the suffix.
 3. Write both files from the same slot values in one step.
 4. `wc -c` the contract; if ≥ 4,000, trim per the priority above and rewrite.
 5. Finish by printing the exact command for the user to run — you cannot set the goal yourself:
