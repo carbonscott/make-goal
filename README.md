@@ -6,14 +6,14 @@ A [Claude Code](https://claude.com/claude-code) skill that turns a rough goal in
 
 ## What it produces
 
-From a rough goal, the skill writes three files into `.goal/` in your working directory:
+From a rough goal, the skill writes three files into `.goal/` in your working directory (two if you decline the claims file):
 
 - **`.goal/<slug>.json`** — the contract. Describes *what ends the loop*, never a task list. Key parts:
   - `done_when` — checkable end states, each carrying its own proof phrase (e.g. *"proven by printing the final line of `npm test` showing exit 0"*).
   - `operating_mode` — the running agent acts as an orchestrator, delegating each iteration to 2–5 subagents and maintaining an iteration ledger plus a claims file.
   - `bound` — an OR-termination clause so the loop is guaranteed to stop.
 - **`.goal/<slug>.ledger.json`** — a bootstrapped ledger the running agent appends to, one entry per iteration.
-- **`.goal/<slug>.claims.json`** — the campaign's key claims (typically 5–15), maintained every iteration. Each claim carries a provenance of `verified` (evidence cites a checkable artifact surfaced in the conversation), `inherited` (an external source named), or `inferred` (reasoning only) — lookups against the campaign record, not confidence scores. A `review_first` queue names 1–3 claims to check first, weakest support foremost, and `next_verification` names the most valuable check not yet performed. The file exists to route a reviewer's attention.
+- **`.goal/<slug>.claims.json`** — the campaign's key claims (typically 5–15), maintained every iteration. Each claim carries a provenance of `verified` (evidence cites a checkable artifact surfaced in the conversation), `inherited` (an external source named), or `inferred` (reasoning only) — lookups against the campaign record, not confidence scores. A `review_first` queue names up to 3 claims to check first, weakest support foremost, and `next_verification` names the most valuable check not yet performed. The file exists to route a reviewer's attention.
 
 Then it prints the exact command to start the loop:
 
@@ -55,7 +55,7 @@ You can also hand it a fully pre-written condition — it still wraps it in the 
     "This turn prints the LEDGER digest — a header line reading iterations N/3 with N ≥ 3, one roster line per completed iteration each naming a non-empty 'new', and the current iteration's full JSON entry — showing at least 3 completed iterations."
   ],
   "guardrails": ["Do not modify any file outside src/auth/."],
-  "bound": "OR: the printed digest's header shows 9 completed iterations. In that case print the digest, the complete claims file via cat, and a gap report listing every unmet done_when item, then stop."
+  "bound": "OR: the printed digest's header shows 9 completed iterations. In that case print the digest, the complete claims file via cat, and a gap report listing every unmet done_when item, then stop — this counts as bounded termination."
 }
 ```
 
