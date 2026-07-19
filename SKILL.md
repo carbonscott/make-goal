@@ -30,7 +30,7 @@ One hard gate follows: **never write the `.goal/` files without the user's expli
 | Iteration floor | 3 |
 | Turn ceiling | 3 × floor (9) |
 
-Apply automatically and state once for veto — "Defaults: 2–5 subagents per iteration, at least 3 iterations, stop after 9 turns, plus a closure claims file — say the word for different numbers or to drop the claims file." Never ask about them as a question. If the user changes the floor without naming a ceiling, recompute ceiling = 3 × floor.
+Apply automatically and state once for veto — "Defaults: 2–5 subagents per iteration, at least 3 iterations, stop after 9 turns, plus a running claims file — say the word for different numbers or to drop the claims file." Never ask about them as a question. If the user changes the floor without naming a ceiling, recompute ceiling = 3 × floor.
 
 ## Interview flow
 
@@ -70,12 +70,12 @@ JSON container, prose values. Key order is deliberate: `/goal @file` inlines the
     "budget": "Delegate to at least 2 and at most 5 subagents per iteration.",
     "iterations": "Complete at least 3 iterations before done_when may be considered met, even if it appears satisfied earlier — use surplus iterations to verify and harden.",
     "ledger": "Maintain .goal/auth-refactor.ledger.json on disk, appending one FULL entry per iteration: {n, thought, delegated: [{agent, task, model}], integrated, new, remaining} — the file keeps every field. 'new' must name a decision or artifact that did not exist before this iteration. At the end of EVERY turn print a LEDGER digest (NOT the whole file): a header line `LEDGER auth-refactor — iterations N/3, full at .goal/auth-refactor.ledger.json` (N = completed-iteration count); then one roster line per completed iteration `n · delegated:k · new: <that iteration's non-empty new>` (k = subagents delegated that iteration); then the current iteration's full JSON entry in a fenced block. Only the printed report shrinks; the file loses nothing. The evaluator reads conversation text only: what this turn's digest does not show does not exist, even if the file does.",
-    "claims": "Maintain .goal/auth-refactor.claims.json on disk — the campaign's key claims (typically 5–15), updated every iteration as claims land or change. Shape: {goal, slug, claims: [{id, provenance, evidence, claim}], review_first: [up to 3 claim ids, weakest support first — the reviewer's priority queue], next_verification: the single most valuable check not yet performed} — goal and slug are set at bootstrap, keep them. provenance is one of: verified — evidence cites a checkable artifact surfaced in this conversation (job id, PR#, SHA, printed output); inherited — evidence names the external source being trusted; inferred — reasoning only (evidence may describe partial support). Tags are lookups against the campaign record, never confidence scores. The final turn prints the complete file via cat."
+    "claims": "Maintain .goal/auth-refactor.claims.json on disk — the campaign's key claims (typically 5–15), updated every iteration as claims land or change. Shape: {goal, slug, claims: [{id, provenance, evidence, claim}], review_first: [1–3 claim ids, weakest support first — the reviewer's priority queue], next_verification: the single most valuable check not yet performed} — goal and slug are set at bootstrap, keep them. provenance is one of: verified — evidence cites a checkable artifact surfaced in this conversation (job id, PR#, SHA, printed output); inherited — evidence names the external source being trusted; inferred — reasoning only (evidence may describe partial support). Tags are lookups against the campaign record, never confidence scores. The final turn prints the complete file via cat."
   },
   "done_when": [
     "Every file in src/auth is under 200 lines, proven by printing the output of `wc -l src/auth/*`.",
     "The test suite passes, proven by printing the final line of `npm test` showing exit 0.",
-    "The final turn prints the complete contents of .goal/auth-refactor.claims.json via cat, showing: at least 1 entry in claims; every entry's provenance one of verified/inherited/inferred; every verified or inherited entry with non-empty evidence, each verified entry's evidence citing an identifier that appeared earlier in this conversation; review_first naming only existing claim ids (up to 3); next_verification naming one concrete check.",
+    "The final turn prints the complete contents of .goal/auth-refactor.claims.json via cat, showing: non-empty goal and slug; at least 1 entry in claims; every entry's provenance one of verified/inherited/inferred; every verified or inherited entry with non-empty evidence, each verified entry's evidence citing an identifier that appeared earlier in this conversation; review_first naming 1–3 existing claim ids; next_verification naming one concrete check.",
     "This turn prints the LEDGER digest — a header line reading iterations N/3 with N ≥ 3, one roster line per completed iteration each naming a non-empty 'new', and the current iteration's full JSON entry — showing at least 3 completed iterations."
   ],
   "guardrails": ["Do not modify any file outside src/auth/."],
@@ -146,7 +146,7 @@ After the user approves the draft, before writing files:
 4. Fail → name the ambiguous done_when item, revise its wording (typical fixes: add "proven by printing …", quantify a vague term), re-run. After two failed revisions, tell the user plainly that this proof is not judgeable from conversation text and needs a different observable.
 5. Show both verdicts to the user in one short block alongside the final draft.
 
-Worked example to calibrate the two hypotheticals (auth-refactor, floor 3) — both exercise the digest form:
+Worked example to calibrate the hypotheticals (auth-refactor, floor 3) — one MET block, then two alternative UNMET near-misses of which you compose one; each reuses MET's outputs and changes only the block shown:
 
 **MET** — header shows 3/3, every roster `new` non-empty, both proofs present, claims file printed:
 ```
@@ -163,7 +163,7 @@ LEDGER auth-refactor — iterations 3/3, full at .goal/auth-refactor.ledger.json
   "goal": "Refactor src/auth into modules each under 200 lines",
   "slug": "auth-refactor",
   "claims": [
-    { "id": "C1", "provenance": "verified", "evidence": "wc -l and npm test outputs printed this turn", "claim": "all src/auth files <200 lines, tests passing" },
+    { "id": "C1", "provenance": "verified", "evidence": "PR #128 opened iteration 2; wc -l and npm test outputs printed this turn", "claim": "all src/auth files <200 lines, tests passing" },
     { "id": "C2", "provenance": "inferred", "evidence": "grep found no callers outside src/auth", "claim": "the split changed no public API" }
   ],
   "review_first": ["C2"],

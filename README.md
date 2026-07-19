@@ -51,7 +51,7 @@ You can also hand it a fully pre-written condition — it still wraps it in the 
   "done_when": [
     "Every file in src/auth is under 200 lines, proven by printing the output of `wc -l src/auth/*`.",
     "The test suite passes, proven by printing the final line of `npm test` showing exit 0.",
-    "The final turn prints the complete contents of .goal/auth-refactor.claims.json via cat, showing: at least 1 entry in claims; every entry's provenance one of verified/inherited/inferred; every verified or inherited entry with non-empty evidence, each verified entry's evidence citing an identifier that appeared earlier in this conversation; review_first naming only existing claim ids (up to 3); next_verification naming one concrete check.",
+    "The final turn prints the complete contents of .goal/auth-refactor.claims.json via cat, showing: non-empty goal and slug; at least 1 entry in claims; every entry's provenance one of verified/inherited/inferred; every verified or inherited entry with non-empty evidence, each verified entry's evidence citing an identifier that appeared earlier in this conversation; review_first naming 1–3 existing claim ids; next_verification naming one concrete check.",
     "This turn prints the LEDGER digest — a header line reading iterations N/3 with N ≥ 3, one roster line per completed iteration each naming a non-empty 'new', and the current iteration's full JSON entry — showing at least 3 completed iterations."
   ],
   "guardrails": ["Do not modify any file outside src/auth/."],
