@@ -71,7 +71,7 @@ JSON container, prose values. Key order is deliberate: `/goal @file` inlines the
     "budget": "Delegate to at least 2 and at most 5 subagents per iteration.",
     "iterations": "Complete at least 3 iterations before done_when may be considered met, even if it appears satisfied earlier — use surplus iterations to verify and harden.",
     "ledger": "Maintain .goal/auth-refactor.ledger.json on disk, appending one FULL entry per iteration: {n, thought, delegated: [{agent, task, model}], integrated, new, remaining} — the file keeps every field. 'new' must name a decision or artifact that did not exist before this iteration. At the end of EVERY turn print a LEDGER digest (NOT the whole file): a header line `LEDGER auth-refactor — iterations N/3, full at .goal/auth-refactor.ledger.json` (N = completed-iteration count); then one roster line per completed iteration `n · delegated:k · new: <that iteration's non-empty new>` (k = subagents delegated that iteration); then the current iteration's full JSON entry in a fenced block. Only the printed report shrinks; the file loses nothing. The evaluator reads conversation text only: what this turn's digest does not show does not exist, even if the file does.",
-    "claims": "Maintain .goal/auth-refactor.claims.json on disk — the campaign's key claims (typically 5–15), updated every iteration as claims land or change. Shape: {goal, slug, claims: [{id, provenance, evidence, claim}], review_first: [up to 3 claim ids, weakest support first — the reviewer's priority queue; at least 1 by the final turn], next_verification: the single most valuable check not yet performed} — goal and slug are set at bootstrap, keep them. provenance is one of: verified — evidence cites a checkable artifact surfaced in this conversation (job id, PR#, SHA, printed output); inherited — evidence names the external source being trusted, including a subagent whose report you did not re-verify (name the agent and task); it becomes verified only once you surface the underlying artifact in this conversation; inferred — reasoning only (evidence may describe partial support). Tags are lookups against the campaign record, never confidence scores. The final turn prints the complete file via cat."
+    "claims": "Maintain .goal/auth-refactor.claims.json on disk — the campaign's key claims (typically 5–15), updated every iteration as claims land or change. Shape: {goal, slug, claims: [{id, provenance, evidence, claim}], review_first: [up to 3 claim ids, weakest support first — the reviewer's priority queue; at least 1 by the final turn], next_verification: the single most valuable check not yet performed} — goal and slug are set at bootstrap, keep them. provenance is one of: verified — evidence cites a checkable artifact you surfaced yourself in this conversation (job id, PR#, SHA, output you printed from your own run); inherited — the evidence you hold is a report rather than the artifact: an external source, or a subagent's account of its own work (name the agent and task). Output a subagent quoted to you stays inherited until you re-run it yourself; inferred — reasoning only (evidence may describe partial support). Tags are lookups against the campaign record, never confidence scores. The final turn prints the complete file via cat."
   },
   "done_when": [
     "Every file in src/auth is under 200 lines, proven by printing the output of `wc -l src/auth/*`.",
@@ -157,7 +157,7 @@ LEDGER auth-refactor — iterations 3/3, full at .goal/auth-refactor.ledger.json
 3 · delegated:2 · new: moved middleware into auth/guards.py; every file now <200 lines
 ```
 ```json
-{ "n": 3, "thought": "carve out the final module and re-verify", "delegated": [ { "agent": "general-purpose", "task": "move middleware + decorators into auth/guards.py", "model": "sonnet" }, { "agent": "general-purpose", "task": "re-run wc -l and npm test to confirm", "model": "sonnet" } ], "integrated": "all src/auth files <200 lines; npm test exit 0", "new": "moved middleware into auth/guards.py; every file now <200 lines", "remaining": "none" }
+{ "n": 3, "thought": "carve out the final module and re-verify", "delegated": [ { "agent": "general-purpose", "task": "move middleware + decorators into auth/guards.py", "model": "sonnet" }, { "agent": "general-purpose", "task": "audit the new module boundaries for circular imports", "model": "sonnet" } ], "integrated": "all src/auth files <200 lines; npm test exit 0", "new": "moved middleware into auth/guards.py; every file now <200 lines", "remaining": "none" }
 ```
 `wc -l src/auth/*` → every file <200; `npm test` → exit 0.
 
@@ -169,13 +169,13 @@ $ cat .goal/auth-refactor.claims.json
   "claims": [
     { "id": "C1", "provenance": "verified", "evidence": "PR #128 opened iteration 2; wc -l and npm test outputs printed this turn", "claim": "all src/auth files <200 lines, tests passing" },
     { "id": "C2", "provenance": "inferred", "evidence": "grep found no callers outside src/auth", "claim": "the split changed no public API" },
-    { "id": "C3", "provenance": "inherited", "evidence": "the upstream auth-service changelog for v4.2", "claim": "the token format this refactor preserves is still current upstream" }
+    { "id": "C3", "provenance": "inherited", "evidence": "general-purpose subagent, tasked with reading the upstream auth-service changelog, reported v4.2 leaves the token format unchanged", "claim": "the token format this refactor preserves is still current upstream" }
   ],
   "review_first": ["C2", "C3"],
-  "next_verification": "run the integration suite, not just unit tests"
+  "next_verification": "read the upstream v4.2 changelog myself and print its token-format section, promoting C3 to verified"
 }
 ```
-Verdict: **MET** — floor 3/3, each roster `new` non-empty, both proofs present, claims file complete with every entry tagged and evidenced. (Claims abridged to 3 for space; a real campaign carries the clause's typical 5–15.)
+Verdict: **MET** — floor 3/3, each roster `new` non-empty, both proofs present, claims file complete with every entry tagged and every verified/inherited entry carrying evidence. (Claims abridged to 3 for space; a real campaign carries the clause's typical 5–15.)
 
 **UNMET near-miss (claims)** — same outputs, but C1's evidence is empty while still tagged `verified`:
 ```json
