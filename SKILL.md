@@ -70,12 +70,12 @@ JSON container, prose values. Key order is deliberate: `/goal @file` inlines the
     "budget": "Delegate to at least 2 and at most 5 subagents per iteration.",
     "iterations": "Complete at least 3 iterations before done_when may be considered met, even if it appears satisfied earlier — use surplus iterations to verify and harden.",
     "ledger": "Maintain .goal/auth-refactor.ledger.json on disk, appending one FULL entry per iteration: {n, thought, delegated: [{agent, task, model}], integrated, new, remaining} — the file keeps every field. 'new' must name a decision or artifact that did not exist before this iteration. At the end of EVERY turn print a LEDGER digest (NOT the whole file): a header line `LEDGER auth-refactor — iterations N/3, full at .goal/auth-refactor.ledger.json` (N = completed-iteration count); then one roster line per completed iteration `n · delegated:k · new: <that iteration's non-empty new>` (k = subagents delegated that iteration); then the current iteration's full JSON entry in a fenced block. Only the printed report shrinks; the file loses nothing. The evaluator reads conversation text only: what this turn's digest does not show does not exist, even if the file does.",
-    "claims": "Maintain .goal/auth-refactor.claims.md on disk — the campaign's key claims (typically 5–15) as a Markdown table, updated every iteration as claims land or change. Format: header line `# Claims — auth-refactor`; a table with columns `| id | provenance | evidence | claim |`; then two lines: `Review first:` naming up to 3 claim ids weakest-support-first (the reviewer's priority queue) and `Next verification:` naming the single most valuable check not yet performed. provenance is one of: verified — evidence cites a checkable artifact surfaced in this conversation (job id, PR#, SHA, printed output); inherited — evidence names the external source being trusted; inferred — reasoning only (evidence may describe partial support). Tags are lookups against the campaign record, never confidence scores. The final turn prints the complete file via cat."
+    "claims": "Maintain .goal/auth-refactor.claims.json on disk — the campaign's key claims (typically 5–15), updated every iteration as claims land or change. Shape: {claims: [{id, provenance, evidence, claim}], review_first: [up to 3 claim ids, weakest support first — the reviewer's priority queue], next_verification: the single most valuable check not yet performed}. provenance is one of: verified — evidence cites a checkable artifact surfaced in this conversation (job id, PR#, SHA, printed output); inherited — evidence names the external source being trusted; inferred — reasoning only (evidence may describe partial support). Tags are lookups against the campaign record, never confidence scores. The final turn prints the complete file via cat."
   },
   "done_when": [
     "Every file in src/auth is under 200 lines, proven by printing the output of `wc -l src/auth/*`.",
     "The test suite passes, proven by printing the final line of `npm test` showing exit 0.",
-    "The final turn prints the complete contents of .goal/auth-refactor.claims.md via cat, showing: at least 1 claim row; every row's provenance one of verified/inherited/inferred; every verified or inherited row with non-empty evidence, each verified row's evidence citing an identifier that appeared earlier in this conversation; a 'Review first' line naming only existing claim ids (up to 3); a 'Next verification' line naming one concrete check.",
+    "The final turn prints the complete contents of .goal/auth-refactor.claims.json via cat, showing: at least 1 entry in claims; every entry's provenance one of verified/inherited/inferred; every verified or inherited entry with non-empty evidence, each verified entry's evidence citing an identifier that appeared earlier in this conversation; review_first naming only existing claim ids (up to 3); next_verification naming one concrete check.",
     "This turn prints the LEDGER digest — a header line reading iterations N/3 with N ≥ 3, one roster line per completed iteration each naming a non-empty 'new', and the current iteration's full JSON entry — showing at least 3 completed iterations."
   ],
   "guardrails": ["Do not modify any file outside src/auth/."],
@@ -123,24 +123,18 @@ Entries the running agent appends per iteration — the file retains every field
 }
 ```
 
-### Claims bootstrap — `.goal/<slug>.claims.md`
+### Claims bootstrap — `.goal/<slug>.claims.json`
 
-Bootstrap exactly this (the running agent fills it per the contract's claims clause):
+Bootstrap exactly this shape (the running agent fills it per the contract's claims clause):
 
-```markdown
-# Claims — auth-refactor
-
-| id | provenance | evidence | claim |
-|----|------------|----------|-------|
-
-Review first: (none yet)
-Next verification: (none yet)
+```json
+{ "claims": [], "review_first": [], "next_verification": "" }
 ```
 
 ## Evaluator dry-run
 
 After the user approves the draft, before writing files:
-1. Compose two short hypothetical end-of-turn outputs (invented, a few lines each, no tools run): **MET** — the proof text for every done_when item, a printed LEDGER digest whose header shows ≥ floor iterations with each roster line naming a non-empty `new`, plus a cat of the complete claims file with every row tagged and every verified/inherited row carrying evidence; **UNMET near-miss** — e.g. proofs present but the digest's header shows one iteration too few, or a roster line's `new` is empty, or one proof missing, or a `verified` claim row with an empty evidence cell.
+1. Compose two short hypothetical end-of-turn outputs (invented, a few lines each, no tools run): **MET** — the proof text for every done_when item, a printed LEDGER digest whose header shows ≥ floor iterations with each roster line naming a non-empty `new`, plus a cat of the complete claims file with every entry tagged and every verified/inherited entry carrying evidence; **UNMET near-miss** — e.g. proofs present but the digest's header shows one iteration too few, or a roster line's `new` is empty, or one proof missing, or a `verified` claim entry with empty evidence.
 2. Role-play the /goal evaluator: judge each hypothetical using only its text against the drafted condition. Output met/not-met plus a one-line reason each.
 3. Pass = MET judged met AND UNMET judged not met, with reasons citing the intended items.
 4. Fail → name the ambiguous done_when item, revise its wording (typical fixes: add "proven by printing …", quantify a vague term), re-run. After two failed revisions, tell the user plainly that this proof is not judgeable from conversation text and needs a different observable.
@@ -158,24 +152,23 @@ LEDGER auth-refactor — iterations 3/3, full at .goal/auth-refactor.ledger.json
 ```json
 { "n": 3, "thought": "carve out the final module and re-verify", "delegated": [ { "agent": "general-purpose", "task": "move middleware + decorators into auth/guards.py", "model": "sonnet" }, { "agent": "general-purpose", "task": "re-run wc -l and npm test to confirm", "model": "sonnet" } ], "integrated": "all src/auth files <200 lines; npm test exit 0", "new": "moved middleware into auth/guards.py; every file now <200 lines", "remaining": "none" }
 ```
-```markdown
-# Claims — auth-refactor
-
-| id | provenance | evidence | claim |
-|----|------------|----------|-------|
-| C1 | verified   | wc -l and npm test outputs printed this turn | all src/auth files <200 lines, tests passing |
-| C2 | inferred   | grep found no callers outside src/auth | the split changed no public API |
-
-Review first: C2
-Next verification: run the integration suite, not just unit tests
+```json
+{
+  "claims": [
+    { "id": "C1", "provenance": "verified", "evidence": "wc -l and npm test outputs printed this turn", "claim": "all src/auth files <200 lines, tests passing" },
+    { "id": "C2", "provenance": "inferred", "evidence": "grep found no callers outside src/auth", "claim": "the split changed no public API" }
+  ],
+  "review_first": ["C2"],
+  "next_verification": "run the integration suite, not just unit tests"
+}
 ```
-`wc -l src/auth/*` → every file <200; `npm test` → exit 0. Verdict: **MET** — floor 3/3, each roster `new` non-empty, both proofs present, claims file complete with every row tagged and evidenced.
+`wc -l src/auth/*` → every file <200; `npm test` → exit 0. Verdict: **MET** — floor 3/3, each roster `new` non-empty, both proofs present, claims file complete with every entry tagged and evidenced.
 
-**UNMET near-miss (claims)** — same outputs, but C1's evidence cell is empty while still tagged `verified`:
+**UNMET near-miss (claims)** — same outputs, but C1's evidence is empty while still tagged `verified`:
+```json
+{ "id": "C1", "provenance": "verified", "evidence": "", "claim": "all src/auth files <200 lines, tests passing" }
 ```
-| C1 | verified   |  | all src/auth files <200 lines, tests passing |
-```
-Verdict: **not met** — a verified row must carry non-empty evidence citing an identifier from this conversation; the tag without the lookup fails the claims item even though every proof passes.
+Verdict: **not met** — a verified entry must carry non-empty evidence citing an identifier from this conversation; the tag without the lookup fails the claims item even though every proof passes.
 
 **UNMET near-miss (ledger)** — same proofs, but iteration 3's roster `new` is empty (a padded iteration that did nothing):
 ```
@@ -204,7 +197,7 @@ Edge cases: no git repo is fine — `mkdir -p .goal` in the cwd, no repo check a
 ## Output
 
 1. Show the drafted contract, the bootstrapped ledger, the bootstrapped claims file, and the dry-run verdicts in the conversation, then **STOP and wait for the user's explicit approval** before writing anything. Explicit means a clear go-ahead ("yes", "go", "write it"); a question, silence, a partial reaction, or "looks good but…" is not approval — refine and ask again. Do not run `mkdir` or write any file until you have it.
-2. **Only after that explicit approval:** `mkdir -p .goal`. If `.goal/<slug>.json` OR `.goal/<slug>.ledger.json` OR `.goal/<slug>.claims.md` already exists, never overwrite silently (an existing ledger may hold a run in progress) — ask: *"`.goal/<slug>.json` already exists — overwrite it, or write `<slug>-2` alongside?"* Version with the first free numeric suffix; all three files always share the suffix.
+2. **Only after that explicit approval:** `mkdir -p .goal`. If `.goal/<slug>.json` OR `.goal/<slug>.ledger.json` OR `.goal/<slug>.claims.json` already exists, never overwrite silently (an existing ledger may hold a run in progress) — ask: *"`.goal/<slug>.json` already exists — overwrite it, or write `<slug>-2` alongside?"* Version with the first free numeric suffix; all three files always share the suffix.
 3. Write all three files from the same slot values in one step.
 4. `wc -c` the contract; if ≥ 4,000, tell the user the count and ask whether they want it trimmed under 4,000 — optional, since `/goal @file` isn't hard-capped. Only if they agree, trim per the priority above and rewrite; otherwise leave it as written.
 5. Finish by printing the exact command for the user to run — you cannot set the goal yourself:
