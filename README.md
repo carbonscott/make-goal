@@ -13,7 +13,7 @@ From a rough goal, the skill writes three files into `.goal/` in your working di
   - `operating_mode` — the running agent acts as an orchestrator, delegating each iteration to 2–5 subagents and maintaining an iteration ledger plus a claims file.
   - `bound` — an OR-termination clause so the loop is guaranteed to stop.
 - **`.goal/<slug>.ledger.json`** — a bootstrapped ledger the running agent appends to, one entry per iteration.
-- **`.goal/<slug>.claims.json`** — the campaign's key claims (typically 5–15), maintained every iteration. Each claim carries a provenance of `verified` (evidence cites a checkable artifact surfaced in the conversation), `inherited` (an external source named), or `inferred` (reasoning only) — lookups against the campaign record, not confidence scores. A `review_first` queue names up to 3 claims to check first, weakest support foremost, and `next_verification` names the most valuable check not yet performed. The file exists to route a reviewer's attention.
+- **`.goal/<slug>.claims.json`** — the campaign's key claims (typically 5–15), maintained every iteration. Each claim carries a provenance of `verified` (evidence cites a checkable artifact surfaced in the conversation), `inherited` (an external source named), or `inferred` (reasoning only) — lookups against the campaign record, not confidence scores. A `review_first` queue names 1–3 claims to check first, weakest support foremost, and `next_verification` names the most valuable check not yet performed. The file exists to route a reviewer's attention.
 
 Then it prints the exact command to start the loop:
 
