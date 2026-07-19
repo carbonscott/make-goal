@@ -70,7 +70,7 @@ JSON container, prose values. Key order is deliberate: `/goal @file` inlines the
     "budget": "Delegate to at least 2 and at most 5 subagents per iteration.",
     "iterations": "Complete at least 3 iterations before done_when may be considered met, even if it appears satisfied earlier — use surplus iterations to verify and harden.",
     "ledger": "Maintain .goal/auth-refactor.ledger.json on disk, appending one FULL entry per iteration: {n, thought, delegated: [{agent, task, model}], integrated, new, remaining} — the file keeps every field. 'new' must name a decision or artifact that did not exist before this iteration. At the end of EVERY turn print a LEDGER digest (NOT the whole file): a header line `LEDGER auth-refactor — iterations N/3, full at .goal/auth-refactor.ledger.json` (N = completed-iteration count); then one roster line per completed iteration `n · delegated:k · new: <that iteration's non-empty new>` (k = subagents delegated that iteration); then the current iteration's full JSON entry in a fenced block. Only the printed report shrinks; the file loses nothing. The evaluator reads conversation text only: what this turn's digest does not show does not exist, even if the file does.",
-    "claims": "Maintain .goal/auth-refactor.claims.json on disk — the campaign's key claims (typically 5–15), updated every iteration as claims land or change. Shape: {claims: [{id, provenance, evidence, claim}], review_first: [up to 3 claim ids, weakest support first — the reviewer's priority queue], next_verification: the single most valuable check not yet performed}. provenance is one of: verified — evidence cites a checkable artifact surfaced in this conversation (job id, PR#, SHA, printed output); inherited — evidence names the external source being trusted; inferred — reasoning only (evidence may describe partial support). Tags are lookups against the campaign record, never confidence scores. The final turn prints the complete file via cat."
+    "claims": "Maintain .goal/auth-refactor.claims.json on disk — the campaign's key claims (typically 5–15), updated every iteration as claims land or change. Shape: {goal, slug, claims: [{id, provenance, evidence, claim}], review_first: [up to 3 claim ids, weakest support first — the reviewer's priority queue], next_verification: the single most valuable check not yet performed} — goal and slug are set at bootstrap, keep them. provenance is one of: verified — evidence cites a checkable artifact surfaced in this conversation (job id, PR#, SHA, printed output); inherited — evidence names the external source being trusted; inferred — reasoning only (evidence may describe partial support). Tags are lookups against the campaign record, never confidence scores. The final turn prints the complete file via cat."
   },
   "done_when": [
     "Every file in src/auth is under 200 lines, proven by printing the output of `wc -l src/auth/*`.",
@@ -125,10 +125,16 @@ Entries the running agent appends per iteration — the file retains every field
 
 ### Claims bootstrap — `.goal/<slug>.claims.json`
 
-Bootstrap exactly this shape (the running agent fills it per the contract's claims clause):
+Bootstrap exactly this shape (real values; the running agent fills the rest per the contract's claims clause):
 
 ```json
-{ "claims": [], "review_first": [], "next_verification": "" }
+{
+  "goal": "Refactor src/auth into modules each under 200 lines",
+  "slug": "auth-refactor",
+  "claims": [],
+  "review_first": [],
+  "next_verification": ""
+}
 ```
 
 ## Evaluator dry-run
@@ -154,6 +160,8 @@ LEDGER auth-refactor — iterations 3/3, full at .goal/auth-refactor.ledger.json
 ```
 ```json
 {
+  "goal": "Refactor src/auth into modules each under 200 lines",
+  "slug": "auth-refactor",
   "claims": [
     { "id": "C1", "provenance": "verified", "evidence": "wc -l and npm test outputs printed this turn", "claim": "all src/auth files <200 lines, tests passing" },
     { "id": "C2", "provenance": "inferred", "evidence": "grep found no callers outside src/auth", "claim": "the split changed no public API" }
