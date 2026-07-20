@@ -71,12 +71,12 @@ JSON container, prose values. Key order is deliberate: `/goal @file` inlines the
     "budget": "Delegate to at least 2 and at most 5 subagents per iteration.",
     "iterations": "Complete at least 3 iterations before done_when may be considered met, even if it appears satisfied earlier — use surplus iterations to verify and harden.",
     "ledger": "Maintain .goal/auth-refactor.ledger.json on disk, appending one FULL entry per iteration: {n, thought, delegated: [{agent, task, model}], integrated, new, remaining} — the file keeps every field. 'new' must name a decision or artifact that did not exist before this iteration. At the end of EVERY turn print a LEDGER digest (NOT the whole file): a header line `LEDGER auth-refactor — iterations N/3, full at .goal/auth-refactor.ledger.json` (N = completed-iteration count); then one roster line per completed iteration `n · delegated:k · new: <that iteration's non-empty new>` (k = subagents delegated that iteration); then the current iteration's full JSON entry in a fenced block. Only the printed report shrinks; the file loses nothing. The evaluator reads conversation text only: what this turn's digest does not show does not exist, even if the file does.",
-    "claims": "Maintain .goal/auth-refactor.claims.json on disk — the campaign's key claims (typically 5–15), updated every iteration as claims land or change. Shape: {goal, slug, claims: [{id, provenance, evidence, claim}], review_first: [up to 3 claim ids, weakest support first — the reviewer's priority queue; at least 1 by the final turn], next_verification: the single most valuable check not yet performed} — goal and slug are set at bootstrap, keep them. provenance is one of: verified — evidence cites a checkable artifact you surfaced yourself in this conversation (job id, PR#, SHA, output you printed from your own run); inherited — the evidence you hold is a report rather than the artifact: an external source, or a subagent's account of its own work (name the agent and task). Output a subagent quoted to you stays inherited until you re-run it yourself; inferred — reasoning only (evidence may describe partial support). Tags are lookups against the campaign record, never confidence scores. The final turn prints the complete file via cat."
+    "claims": "Maintain .goal/auth-refactor.claims.json on disk — the campaign's key claims (typically 5–15), updated every iteration as claims land or change. Shape: {goal, slug, claims: [{id, provenance, evidence, claim}]} — goal and slug are set at bootstrap, keep them. provenance is one of: verified — evidence cites a checkable artifact you surfaced yourself in this conversation (job id, PR#, SHA, output you printed from your own run); inherited — the evidence you hold is a report rather than the artifact: an external source, or a subagent's account of its own work (name the agent and task). Output a subagent quoted to you stays inherited until you re-run it yourself; inferred — reasoning only (evidence may describe partial support). Tags are lookups against the campaign record, never confidence scores. The final turn prints the complete file via cat."
   },
   "done_when": [
     "Every file in src/auth is under 200 lines, proven by printing the output of `wc -l src/auth/*`.",
     "The test suite passes, proven by printing the final line of `npm test` showing exit 0.",
-    "The final turn prints the complete contents of .goal/auth-refactor.claims.json via cat, showing: non-empty goal and slug; at least 1 entry in claims; every entry's provenance one of verified/inherited/inferred; every verified or inherited entry with non-empty evidence, each verified entry's evidence citing an identifier that appeared earlier in this conversation; review_first naming 1–3 existing claim ids; next_verification naming one concrete check.",
+    "The final turn prints the complete contents of .goal/auth-refactor.claims.json via cat, showing: non-empty goal and slug; at least 1 entry in claims; every entry's provenance one of verified/inherited/inferred; every verified or inherited entry with non-empty evidence, each verified entry's evidence citing an identifier that appeared earlier in this conversation.",
     "This turn prints the LEDGER digest — a header line reading iterations N/3 with N ≥ 3, one roster line per completed iteration each naming a non-empty 'new', and the current iteration's full JSON entry — showing at least 3 completed iterations."
   ],
   "guardrails": ["Do not modify any file outside src/auth/."],
@@ -88,7 +88,7 @@ Field notes — substitute the user's real slug and numbers everywhere:
 - `type` — the only enum: `deterministic` | `exploratory`. Drives interview branching; harmless to the evaluator.
 - `run` — the portable preamble, verbatim from the example. It makes the file self-contained in harnesses without `/goal`.
 - `operating_mode` — five prose strings: role, budget, iterations, ledger, claims (four on a vetoed run, without claims). Numbers appear here as prose only; their machine-readable copy lives in the ledger's `limits`, and both are written from the same slot values in the same Output step so they never drift.
-- `claims` — the durable review artifact: key claims tagged by provenance (verified/inherited/inferred — operational lookups against the campaign record, never introspective confidence), ranked for the human reviewer. Default-on for both goal types; only if the user vetoes it, omit the clause, its done_when item, the claims cat in `bound`, and the third file. That omission governs every later section alike — the evaluator dry-run, the validation checklist, and the Output steps.
+- `claims` — the durable review artifact: key claims tagged by provenance (verified/inherited/inferred — operational lookups against the campaign record, never introspective confidence); the reviewer triages by tag, inferred and inherited first. Default-on for both goal types; only if the user vetoes it, omit the clause, its done_when item, the claims cat in `bound`, and the third file. That omission governs every later section alike — the evaluator dry-run, the validation checklist, and the Output steps.
 - `done_when` — checkable end states only, each carrying its own proof phrase ("proven by printing …"). When present, the claims item is SECOND-TO-LAST and the ledger-digest item LAST — they are how the claims file, the floor, and the budget become evaluator-enforceable; a clause alone is optional prose.
 - `bound` — an OR-termination clause tied to the printed digest's header iteration count (the ceiling), so termination is also judgeable from text.
 
@@ -132,9 +132,7 @@ Bootstrap exactly this shape (real values; the running agent fills the rest per 
 {
   "goal": "Refactor src/auth into modules each under 200 lines",
   "slug": "auth-refactor",
-  "claims": [],
-  "review_first": [],
-  "next_verification": ""
+  "claims": []
 }
 ```
 
@@ -170,9 +168,7 @@ $ cat .goal/auth-refactor.claims.json
     { "id": "C1", "provenance": "verified", "evidence": "PR #128 opened iteration 2; wc -l and npm test outputs printed this turn", "claim": "all src/auth files <200 lines, tests passing" },
     { "id": "C2", "provenance": "inferred", "evidence": "grep found no callers outside src/auth", "claim": "the split changed no public API" },
     { "id": "C3", "provenance": "inherited", "evidence": "general-purpose subagent, tasked with reading the upstream auth-service changelog, reported v4.2 leaves the token format unchanged", "claim": "the token format this refactor preserves is still current upstream" }
-  ],
-  "review_first": ["C2", "C3"],
-  "next_verification": "read the upstream v4.2 changelog myself and print its token-format section, promoting C3 to verified"
+  ]
 }
 ```
 Verdict: **MET** — floor 3/3, each roster `new` non-empty, both proofs present, claims file complete with every entry tagged and every verified/inherited entry carrying evidence. (Claims abridged to 3 for space; a real campaign carries the clause's typical 5–15.)

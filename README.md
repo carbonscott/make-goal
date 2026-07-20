@@ -13,7 +13,7 @@ From a rough goal, the skill writes three files into `.goal/` in your working di
   - `operating_mode` — the running agent acts as an orchestrator, delegating each iteration to 2–5 subagents and maintaining an iteration ledger plus a claims file.
   - `bound` — an OR-termination clause so the loop is guaranteed to stop.
 - **`.goal/<slug>.ledger.json`** — a bootstrapped ledger the running agent appends to, one entry per iteration.
-- **`.goal/<slug>.claims.json`** — the campaign's key claims (typically 5–15), maintained every iteration. Each claim carries a provenance of `verified` (evidence cites a checkable artifact you surfaced yourself — a SHA, a PR number, output you printed from your own run), `inherited` (the evidence you hold is a report rather than the artifact: an external source, or a subagent's account of its own work), or `inferred` (reasoning only) — lookups against the campaign record, not confidence scores. A `review_first` queue names up to 3 claims to check first (at least one by the end), weakest support foremost, and `next_verification` names the most valuable check not yet performed. The file exists to route a reviewer's attention.
+- **`.goal/<slug>.claims.json`** — the campaign's key claims (typically 5–15), maintained every iteration. Each claim carries a provenance of `verified` (evidence cites a checkable artifact you surfaced yourself — a SHA, a PR number, output you printed from your own run), `inherited` (the evidence you hold is a report rather than the artifact: an external source, or a subagent's account of its own work), or `inferred` (reasoning only) — lookups against the campaign record, not confidence scores. The reviewer derives their own queue from the tags — `inferred` and `inherited` claims first. The file exists to give the reviewer a provenance record to triage.
 
 Then it prints the exact command to start the loop:
 
@@ -51,7 +51,7 @@ You can also hand it a fully pre-written condition — it still wraps it in the 
   "done_when": [
     "Every file in src/auth is under 200 lines, proven by printing the output of `wc -l src/auth/*`.",
     "The test suite passes, proven by printing the final line of `npm test` showing exit 0.",
-    "The final turn prints the complete contents of .goal/auth-refactor.claims.json via cat, showing: non-empty goal and slug; at least 1 entry in claims; every entry's provenance one of verified/inherited/inferred; every verified or inherited entry with non-empty evidence, each verified entry's evidence citing an identifier that appeared earlier in this conversation; review_first naming 1–3 existing claim ids; next_verification naming one concrete check.",
+    "The final turn prints the complete contents of .goal/auth-refactor.claims.json via cat, showing: non-empty goal and slug; at least 1 entry in claims; every entry's provenance one of verified/inherited/inferred; every verified or inherited entry with non-empty evidence, each verified entry's evidence citing an identifier that appeared earlier in this conversation.",
     "This turn prints the LEDGER digest — a header line reading iterations N/3 with N ≥ 3, one roster line per completed iteration each naming a non-empty 'new', and the current iteration's full JSON entry — showing at least 3 completed iterations."
   ],
   "guardrails": ["Do not modify any file outside src/auth/."],
