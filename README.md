@@ -6,13 +6,14 @@ A [Claude Code](https://claude.com/claude-code) skill that turns a rough goal in
 
 ## What it produces
 
-From a rough goal, the skill writes two files into `.goal/` in your working directory:
+From a rough goal, the skill writes three files into `.goal/` in your working directory (two if you decline the claims file):
 
 - **`.goal/<slug>.json`** — the contract. Describes *what ends the loop*, never a task list. Key parts:
   - `done_when` — checkable end states, each carrying its own proof phrase (e.g. *"proven by printing the final line of `npm test` showing exit 0"*).
-  - `operating_mode` — the running agent acts as an orchestrator, delegating each iteration to 2–5 subagents and maintaining an iteration ledger.
+  - `operating_mode` — the running agent acts as an orchestrator, delegating each iteration to 2–5 subagents and maintaining an iteration ledger plus a claims file.
   - `bound` — an OR-termination clause so the loop is guaranteed to stop.
 - **`.goal/<slug>.ledger.json`** — a bootstrapped ledger the running agent appends to, one entry per iteration.
+- **`.goal/<slug>.claims.json`** — the campaign's key claims (typically 5–15), maintained every iteration. Each claim carries a provenance of `verified` (evidence cites a checkable artifact you surfaced yourself — a SHA, a PR number, output you printed from your own run), `inherited` (the evidence you hold is a report rather than the artifact: an external source, or a subagent's account of its own work), or `inferred` (reasoning only) — lookups against the campaign record, not confidence scores. A `review_first` queue names up to 3 claims to check first (at least one by the end), weakest support foremost, and `next_verification` names the most valuable check not yet performed. The file exists to route a reviewer's attention.
 
 Then it prints the exact command to start the loop:
 
@@ -37,7 +38,7 @@ Inside Claude Code:
 /make-goal <rough goal description>
 ```
 
-Rough is fine — the skill runs a short interview to fill any missing pieces (goal type, measurable end state, proof, guardrails), applies sensible defaults (2–5 subagents per iteration, at least 3 iterations, stop after 9 turns), does an evaluator dry-run to confirm the condition is judgeable from text, and asks for your approval before writing anything.
+Rough is fine — the skill runs a short interview to fill any missing pieces (goal type, measurable end state, proof, guardrails), applies sensible defaults (2–5 subagents per iteration, at least 3 iterations, stop after 9 turns, plus a running claims file), does an evaluator dry-run to confirm the condition is judgeable from text, and asks for your approval before writing anything.
 
 You can also hand it a fully pre-written condition — it still wraps it in the contract schema, validates it, and runs the dry-run.
 
@@ -50,10 +51,11 @@ You can also hand it a fully pre-written condition — it still wraps it in the 
   "done_when": [
     "Every file in src/auth is under 200 lines, proven by printing the output of `wc -l src/auth/*`.",
     "The test suite passes, proven by printing the final line of `npm test` showing exit 0.",
-    "The full ledger JSON is printed in this turn's output and shows at least 3 completed iterations, each with a non-empty 'new' field."
+    "The final turn prints the complete contents of .goal/auth-refactor.claims.json via cat, showing: non-empty goal and slug; at least 1 entry in claims; every entry's provenance one of verified/inherited/inferred; every verified or inherited entry with non-empty evidence, each verified entry's evidence citing an identifier that appeared earlier in this conversation; review_first naming 1–3 existing claim ids; next_verification naming one concrete check.",
+    "This turn prints the LEDGER digest — a header line reading iterations N/3 with N ≥ 3, one roster line per completed iteration each naming a non-empty 'new', and the current iteration's full JSON entry — showing at least 3 completed iterations."
   ],
   "guardrails": ["Do not modify any file outside src/auth/."],
-  "bound": "OR: the printed ledger shows 9 completed iterations. In that case print the ledger plus a gap report listing every unmet done_when item, and stop."
+  "bound": "OR: the printed digest's header shows 9 completed iterations. In that case print the digest, the complete claims file via cat, and a gap report listing every unmet done_when item, then stop — this counts as bounded termination."
 }
 ```
 
