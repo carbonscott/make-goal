@@ -126,7 +126,7 @@ Entries the running agent appends per iteration — the file retains every field
 
 ## Claims bootstrap — `.goal/<slug>.claims.json`
 
-Bootstrap exactly this shape (real values; the running agent fills the rest per the contract's claims clause):
+Bootstrap exactly this shape (real values; `claims` starts empty — no work has happened yet, and the running agent fills it per the contract's claims clause):
 
 ```json
 {
@@ -134,6 +134,16 @@ Bootstrap exactly this shape (real values; the running agent fills the rest per 
   "slug": "auth-refactor",
   "claims": []
 }
+```
+
+Entries the running agent adds as claims land or change — the shape lives in the contract's claims clause; shown here for reference, one per provenance tag:
+
+```json
+[
+  { "id": "C1", "provenance": "verified", "evidence": "PR #128 opened iteration 2; wc -l and npm test outputs printed this turn", "claim": "all src/auth files <200 lines, tests passing" },
+  { "id": "C2", "provenance": "inferred", "evidence": "grep found no callers outside src/auth", "claim": "the split changed no public API" },
+  { "id": "C3", "provenance": "inherited", "evidence": "general-purpose subagent, tasked with reading the upstream auth-service changelog, reported v4.2 leaves the token format unchanged", "claim": "the token format this refactor preserves is still current upstream" }
+]
 ```
 
 ## Evaluator dry-run
