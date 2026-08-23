@@ -18,7 +18,7 @@ From a rough goal, the skill writes three files into `.goal/` in your working di
 Then it prints the exact command to start the loop:
 
 ```
-/goal @.goal/<slug>.json
+/goal work until all done_when conditions are met in @.goal/<slug>.json
 ```
 
 ## Install

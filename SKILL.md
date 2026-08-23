@@ -221,7 +221,7 @@ If the user vetoed the claims file, read every "three files" below as *two*: ski
 2. **Only after that explicit approval:** `mkdir -p .goal`. If `.goal/<slug>.json` OR `.goal/<slug>.ledger.json` OR `.goal/<slug>.claims.json` already exists, never overwrite silently (an existing ledger may hold a run in progress) — ask, naming the file you actually found: *"`<the file that exists>` already exists — overwrite it, or write `<slug>-2` alongside?"* Version with the first free numeric suffix; all three files always share the suffix.
 3. Write all three files from the same slot values in one step.
 4. `wc -c` the contract; if ≥ 4,000, tell the user the count and ask whether they want it trimmed under 4,000 — optional, since `/goal @file` isn't hard-capped. Only if they agree, trim per the priority above and rewrite; otherwise leave it as written.
-5. Finish by printing the exact command for the user to run — you cannot set the goal yourself:
-   `/goal @.goal/<slug>.json`
+5. Finish by printing the exact command for the user to run — you cannot set the goal yourself. Print it verbatim; the prose prefix names the stopping rule to the evaluator up front, and the `@`-reference must end the line with no trailing punctuation so the file inlines:
+   `/goal work until all done_when conditions are met in @.goal/<slug>.json`
 
 $ARGUMENTS
