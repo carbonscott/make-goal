@@ -13,6 +13,8 @@ This skill's entire deliverable is four files (three if the user vetoes the clai
 
 So while running this skill, do **not**: create branches or worktrees, edit code, run builds or tests to "make progress", open or review PRs, spawn agents to perform the goal, or otherwise advance the goal itself. Read-only inspection to author a sharper contract is fine (Read, Grep, Glob, read-only Bash). **If the goal is about *this* repo or skill, that is not an exception** — still only author the contract; the work happens later, when the user runs `/goal`.
 
+One narrow exception: if the user explicitly asks you to launch the campaign (Output step 5), run `scripts/launch-tmux.sh`. That starts the user's own `/goal` command in a separate Claude Code session; this session still does no goal work, and it never launches on approval alone.
+
 One hard gate follows: **never write the `.goal/` files without the user's explicit approval of the drafted contract** (see Output). Draft, show, stop, wait.
 
 ## Inputs
@@ -255,5 +257,7 @@ If the user vetoed the claims file, skip it in steps 1–3, and drop its `cat` f
 4. `wc -c` the contract; if ≥ 4,000, tell the user the count and ask whether they want it trimmed under 4,000 — optional, since `/goal @file` isn't hard-capped. Only if they agree, trim per the priority above and rewrite; otherwise leave it as written.
 5. Finish by printing the exact command for the user to run — you cannot set the goal yourself. Print it verbatim; the prose prefix names the stopping rule to the evaluator up front, and the `@`-reference must end the line with no trailing punctuation so the file inlines:
    `/goal work until all done_when conditions are met in @.goal/<slug>.json`
+   Then offer one line: *"Or say **launch** and I'll start it in tmux session `goal-<slug>` with Remote Control on (add a permission mode, e.g. **launch auto**, to skip prompts)."*
+6. **Launch, only when asked.** "launch", "write it and launch", or similar, in the user's own words, is the request; approval alone never is. If it came with the approval, write the files first. Then run `bash <this skill's directory>/scripts/launch-tmux.sh <slug> [permission-mode]` from the folder holding `.goal/`, and relay its output verbatim. On exit 0, the campaign is running in a fresh session, which replaces `/clear`; tell the user how to attach. On any other exit, the script prints why and the plain command to run instead; pass that on and do not retry or work around it. Never answer the folder-trust prompt for the user (exit 4).
 
 $ARGUMENTS

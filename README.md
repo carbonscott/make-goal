@@ -22,6 +22,8 @@ Then it prints the exact command to start the loop:
 /goal work until all done_when conditions are met in @.goal/<slug>.json
 ```
 
+Or say **launch** (or "write it and launch", or "launch auto" to pick a permission mode) and the skill starts the campaign for you with [`scripts/launch-tmux.sh`](scripts/launch-tmux.sh): a fresh Claude Code session in tmux session `goal-<slug>`, with Remote Control on and `/goal` as its first message. Attach with `tmux attach -t goal-<slug>`, or open the Remote Control session of the same name. The script never answers Claude Code's folder-trust prompt; if the folder isn't trusted yet, it tells you to attach and decide, and the campaign starts once you trust it. Without tmux, it prints the plain command instead.
+
 ## Install
 
 Clone the repo into your Claude Code skills folder. The skill needs `references/` next to `SKILL.md`, so copy or link the whole directory:
