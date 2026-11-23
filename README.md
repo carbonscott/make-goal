@@ -6,13 +6,14 @@ A [Claude Code](https://claude.com/claude-code) skill that turns a rough goal in
 
 ## What it produces
 
-From a rough goal, the skill writes three files into `.goal/` in your working directory (two if you decline the claims file):
+From a rough goal, the skill writes four files into `.goal/` in your working directory (three if you decline the claims file):
 
 - **`.goal/<slug>.json`** — the contract. Describes *what ends the loop*, never a task list. Key parts:
   - `done_when` — checkable end states, each carrying its own proof phrase (e.g. *"proven by printing the final line of `npm test` showing exit 0"*).
-  - `operating_mode` — the running agent acts as an orchestrator, delegating each iteration to 2–5 subagents and maintaining an iteration ledger plus a claims file.
+  - `operating_mode` — the running agent acts as an orchestrator, delegating each iteration to 2–5 subagents as the goal-cast directs, and maintaining an iteration ledger plus a claims file.
   - `bound` — an OR-termination clause so the loop is guaranteed to stop.
 - **`.goal/<slug>.ledger.json`** — a bootstrapped ledger the running agent appends to, one entry per iteration.
+- **`.goal/<slug>.goal_cast.md`** — how each iteration delegates: the budget, which model and effort each launch gets, and a guard that stops looping subagents. The default `basic` cast rates each task and picks from Opus medium/high/xhigh or Sonnet medium/high, while any launch that checks work stays fixed at Opus xhigh. For campaigns that need named roles, the skill proposes one of the casts in [`references/casts/`](references/casts/) (advisor-worker, implementer-runner, reviewer-fixer, actor-judge) and fills its numbers in for you.
 - **`.goal/<slug>.claims.json`** — the campaign's key claims (typically 5–15), maintained every iteration. Each claim carries a provenance of `verified` (evidence cites a checkable artifact you surfaced yourself — a SHA, a PR number, output you printed from your own run), `inherited` (the evidence you hold is a report rather than the artifact: an external source, or a subagent's account of its own work), or `inferred` (reasoning only) — lookups against the campaign record, not confidence scores. The reviewer derives their own queue from the tags — `inferred` and `inherited` claims first. The file exists to give the reviewer a provenance record to triage.
 
 Then it prints the exact command to start the loop:
@@ -23,11 +24,10 @@ Then it prints the exact command to start the loop:
 
 ## Install
 
-Copy `SKILL.md` into a `make-goal` directory under your Claude Code skills folder:
+Clone the repo into your Claude Code skills folder. The skill needs `references/` next to `SKILL.md`, so copy or link the whole directory:
 
 ```bash
-mkdir -p ~/.claude/skills/make-goal
-cp SKILL.md ~/.claude/skills/make-goal/SKILL.md
+git clone https://github.com/carbonscott/make-goal ~/.claude/skills/make-goal
 ```
 
 ## Usage
@@ -38,7 +38,7 @@ Inside Claude Code:
 /make-goal <rough goal description>
 ```
 
-Rough is fine — the skill runs a short interview to fill any missing pieces (goal type, measurable end state, proof, guardrails), applies sensible defaults (2–5 subagents per iteration, at least 3 iterations, stop after 9 turns, plus a running claims file), does an evaluator dry-run to confirm the condition is judgeable from text, and asks for your approval before writing anything.
+Rough is fine — the skill runs a short interview to fill any missing pieces (goal type, measurable end state, proof, guardrails), applies sensible defaults (2–5 subagents per iteration, at least 3 iterations, stop after 9 turns, a running claims file, the `basic` goal-cast and the delegation guard), shows the delegation and model choice for you to confirm, does an evaluator dry-run to confirm the condition is judgeable from text, and asks for your approval before writing anything.
 
 You can also hand it a fully pre-written condition — it still wraps it in the contract schema, validates it, and runs the dry-run.
 
